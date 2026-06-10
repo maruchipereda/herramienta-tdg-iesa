@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Herramienta de Valoración y Validación · TDG IESA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --paper:#F7F7F5;--paper-2:#EFEFEC;--ink:#2B2B2B;--ink-soft:#6B6B6B;--line:#DDDDD8;
+    --blue:#7B9EBC;--blue-d:#5A7FA0;--blue-bg:#EEF3F8;
+    --sage:#8EAD97;--sage-d:#6A9078;--sage-bg:#EEF4F0;
+    --terra:#C4907A;--terra-d:#A8705A;--terra-bg:#F7EFEC;
+    --pos:#5A7FA0;--neg:#A8705A;
+    --card:#FFFFFF;
+    --shadow:0 1px 0 rgba(43,43,43,.03),0 8px 24px -12px rgba(43,43,43,.12);
+    --r:10px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:'DM Sans',system-ui,sans-serif;
+    font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 28px 80px}
+
+  /* Header — signature: three-color top rule representing the three assets */
+  header{padding:0;border-bottom:1px solid var(--line);margin-bottom:0}
+  .header-rule{height:3px;background:linear-gradient(90deg,var(--blue) 0%,var(--blue) 33.3%,var(--sage) 33.3%,var(--sage) 66.6%,var(--terra) 66.6%,var(--terra) 100%);margin-bottom:0}
+  .header-inner{padding:36px 0 26px}
+  .eyebrow{font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--ink-soft);font-weight:500;margin-bottom:10px}
+  h1{font-family:'Lora',serif;font-weight:600;font-size:28px;line-height:1.18;
+    margin-bottom:10px;max-width:760px;color:var(--ink)}
+  .sub{color:var(--ink-soft);font-size:13.5px;max-width:680px;line-height:1.65}
+
+  /* Nav */
+  nav{position:sticky;top:0;z-index:20;display:flex;gap:3px;padding:12px 0;margin-bottom:12px;flex-wrap:wrap;
+    background:linear-gradient(var(--paper) 80%,transparent);backdrop-filter:blur(4px)}
+  .tab{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--ink-soft);
+    background:transparent;border:1px solid transparent;border-radius:6px;
+    padding:8px 16px;cursor:pointer;transition:.15s;letter-spacing:.01em}
+  .tab:hover{color:var(--ink);background:var(--paper-2);border-color:var(--line)}
+  .tab.active{color:var(--ink);background:var(--card);border-color:var(--line);
+    box-shadow:0 1px 4px rgba(43,43,43,.08);font-weight:600}
+
+  /* Sections */
+  section{display:none;animation:rise .3s ease both}section.active{display:block}
+  @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* Cards */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+    box-shadow:var(--shadow);padding:28px;margin-bottom:20px}
+  h2{font-family:'Lora',serif;font-weight:600;font-size:19px;margin-bottom:6px;color:var(--ink)}
+  h3{font-family:'Lora',serif;font-weight:600;font-size:16px;margin:8px 0;color:var(--ink)}
+  .lead{color:var(--ink-soft);font-size:13px;margin-bottom:18px;max-width:680px;line-height:1.65}
+
+  /* Forms */
+  label{display:block;font-size:11.5px;font-weight:600;color:var(--ink-soft);
+    margin:0 0 5px;letter-spacing:.04em;text-transform:uppercase}
+  input[type=number],input[type=text],select{width:100%;font-family:'DM Mono',monospace;font-size:13px;
+    padding:9px 11px;border:1px solid var(--line);border-radius:6px;
+    background:var(--paper);color:var(--ink);transition:.15s}
+  input:focus,select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(123,158,188,.15)}
+  input[type=range]{width:100%;accent-color:var(--blue);margin-top:8px}
+
+  /* Buttons */
+  .btn{font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:600;
+    border:1px solid var(--ink);background:var(--ink);color:var(--paper);
+    border-radius:6px;padding:9px 18px;cursor:pointer;transition:.15s;
+    text-decoration:none;display:inline-block;letter-spacing:.01em}
+  .btn:hover{background:var(--blue-d);border-color:var(--blue-d)}
+  .btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+  .btn.ghost:hover{background:var(--paper-2);border-color:var(--ink-soft)}
+
+  /* Drop zones */
+  .drop{border:1.5px dashed var(--line);border-radius:var(--r);padding:28px;
+    text-align:center;background:var(--paper);transition:.18s;cursor:pointer}
+  .drop:hover,.drop.over{border-color:var(--blue);background:var(--blue-bg)}
+  .drop .big{font-family:'Lora',serif;font-size:15px;font-weight:500;color:var(--ink)}
+  .drop .small{font-size:12px;color:var(--ink-soft);margin-top:5px;font-family:'DM Mono',monospace}
+
+  /* Layout helpers */
+  .row{display:flex;gap:16px;flex-wrap:wrap}.row>div{flex:1;min-width:150px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .grid-calc{display:grid;grid-template-columns:300px 1fr;gap:26px}
+
+  /* Tables */
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:right;padding:9px 11px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  th{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-soft);font-weight:500;border-bottom:2px solid var(--ink)}
+  td.mono,.greeks td{font-family:'DM Mono',monospace}
+  tbody tr:hover{background:var(--paper-2)}
+  .pos{color:var(--pos);font-weight:600}.neg{color:var(--neg);font-weight:600}
+
+  /* Pills */
+  .pill{display:inline-flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:11px;
+    padding:4px 11px;border-radius:5px;background:var(--paper-2);border:1px solid var(--line);margin:3px 5px 3px 0}
+  .pill b{color:var(--ink);font-weight:600}
+
+  /* BSM calculator outputs */
+  .out{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
+  .premium{background:var(--blue-bg);border:1px solid var(--blue);color:var(--ink);
+    border-radius:var(--r);padding:18px 20px}
+  .premium .k{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--blue-d);font-weight:500}
+  .premium .v{font-family:'Lora',serif;font-size:30px;font-weight:600;margin-top:4px;color:var(--ink)}
+  .premium.put{background:var(--sage-bg);border-color:var(--sage)}
+  .premium.put .k{color:var(--sage-d)}
+
+  /* Payoff params grid */
+  .params{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:1px;
+    background:var(--line);border:1px solid var(--line);border-radius:var(--r);
+    overflow:hidden;margin-bottom:18px}
+  .params div{background:var(--card);padding:11px 13px}
+  .params .k{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--ink-soft)}
+  .params .v{font-family:'DM Mono',monospace;font-size:13.5px;font-weight:500;margin-top:3px;color:var(--ink)}
+
+  /* Segmented control */
+  .seg{display:inline-flex;background:var(--paper-2);border-radius:6px;padding:3px;gap:2px;border:1px solid var(--line)}
+  .seg button{font-size:12px;font-weight:500;font-family:'DM Sans',sans-serif;
+    border:none;background:transparent;color:var(--ink-soft);padding:7px 14px;border-radius:4px;cursor:pointer;transition:.15s}
+  .seg button.active{background:var(--card);color:var(--ink);font-weight:600;
+    box-shadow:0 1px 3px rgba(43,43,43,.1)}
+
+  /* Notes / callouts */
+  .note{font-size:12.5px;color:var(--ink-soft);background:var(--paper-2);
+    border-left:3px solid var(--blue);padding:13px 16px;border-radius:0 6px 6px 0;
+    margin-top:16px;line-height:1.6}
+  .ok-box{border-left-color:var(--sage)}.bad-box{border-left-color:var(--terra)}
+  .verdict{font-family:'Lora',serif;font-size:18px;font-weight:600;margin-bottom:4px;color:var(--ink)}
+
+  /* Misc */
+  .ctrl-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px;align-items:flex-end}
+  .ctrl-row>div{flex:1;min-width:130px}
+  canvas{width:100%;display:block;margin-top:8px}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:var(--ink-soft);
+    font-family:'DM Mono',monospace;margin-top:10px}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .dot{width:11px;height:3px;border-radius:2px}.dotc{width:9px;height:9px;border-radius:50%}
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:6px}
+  details summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--blue-d);padding:8px 0;list-style:none}
+  details summary::-webkit-details-marker{display:none}
+  details summary:before{content:"▸ "}details[open] summary:before{content:"▾ "}
+  .header-top{display:flex;align-items:center;gap:24px}
+  .iesa-logo{width:54px;height:54px;object-fit:contain;flex-shrink:0;opacity:.92}
+  .header-text{flex:1}
+  @media(max-width:760px){.grid2,.grid-calc{grid-template-columns:1fr}h1{font-size:23px}.iesa-logo{width:44px;height:44px}}
+</style>
+</head>
+<body>
+<div class="header-rule"></div>
+<div class="wrap">
+  <header>
+    <div class="header-inner">
+      <div class="header-top">
+        <img src="data:image/png;base64,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" alt="IESA" class="iesa-logo">
+        <div class="header-text">
+          <div class="eyebrow">Trabajo de Grado · IESA · Maestría en Finanzas · 2025</div>
+          <h1>Herramienta de valoración y validación de estrategias de ingreso</h1>
+          <p class="sub">Carga los precios diarios de cualquier acción, simula Covered Call, Cash-Secured Put y Collar, y valida las primas teóricas contra precios reales de opciones. Modelo Black-Scholes con dividendo continuo.</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <button class="tab active" data-s="datos">1 · Datos</button>
+    <button class="tab" data-s="results">2 · Resultados</button>
+    <button class="tab" data-s="valid">3 · Validación (Nivel 2)</button>
+    <button class="tab" data-s="payoff">4 · Diagramas de pago</button>
+    <button class="tab" data-s="calc">5 · Calculadora BSM</button>
+  </nav>
+
+  <!-- ===== DATOS ===== -->
+  <section id="datos" class="active">
+    <div class="card">
+      <h2>Cargar precios de las acciones</h2>
+      <p class="lead">Sube un archivo (CSV o Excel) con los precios diarios. La herramienta detecta automáticamente cuántas acciones trae. Descarga la plantilla para ver el formato exacto.</p>
+      <div class="row" style="margin-bottom:16px">
+        <div style="flex:0 0 auto"><a class="btn ghost" id="dl_prices">↓ Descargar plantilla de precios</a></div>
+      </div>
+      <div class="drop" id="drop_prices">
+        <div class="big">Arrastra aquí el archivo de precios, o haz clic para elegirlo</div>
+        <div class="small">Columnas: Date · TICKER_Nominal · TICKER_Ajustado · Risk_Free_% &nbsp;(una o varias acciones)</div>
+        <input type="file" id="file_prices" accept=".csv,.xlsx,.xls" style="display:none">
+      </div>
+      <div id="prices_status" class="hint"></div>
+      <div id="ticker_cfg" style="margin-top:18px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Parámetros del estudio</h2>
+      <p class="lead">Editables. Por defecto, los del trabajo: 5% OTM, vencimiento 30 días naturales, volatilidad rolling de 30 días.</p>
+      <div class="ctrl-row">
+        <div><label>Strike (% OTM)</label><input type="number" id="p_otm" value="5" step="0.5"></div>
+        <div><label>Días al vencimiento (naturales)</label><input type="number" id="p_T" value="30" step="1"></div>
+        <div><label>Ventana volatilidad (días)</label><input type="number" id="p_win" value="30" step="1"></div>
+        <div><label>Tasa libre de riesgo (% — si no hay columna)</label><input type="number" id="p_r" value="4.22" step="0.05"></div>
+      </div>
+      <button class="btn" id="recompute">Recalcular</button>
+      <span class="hint" id="param_note" style="margin-left:12px"></span>
+    </div>
+  </section>
+
+  <!-- ===== RESULTADOS ===== -->
+  <section id="results">
+    <div class="card">
+      <h2>Desempeño por estrategia</h2>
+      <p class="lead">Entradas diarias solapadas con horizonte de 30 días naturales. Retornos sobre capital comprometido. Sharpe simplificado con la tasa libre de riesgo del período.</p>
+      <table>
+        <thead><tr><th>Activo</th><th>Estrategia</th><th>n</th><th>Ret. prom.</th><th>Desv.</th><th>Sharpe</th><th>Peor</th><th>Mejor</th><th>Éxito</th></tr></thead>
+        <tbody id="r_table"></tbody>
+      </table>
+      <div class="note" id="r_note"></div>
+    </div>
+    <div class="card">
+      <h2>Sharpe por combinación</h2>
+      <canvas id="r_canvas" height="300"></canvas>
+    </div>
+    <div class="card" id="detail_card">
+      <h2>Detalle de corridas individuales</h2>
+      <p class="lead">Cada fila es una entrada diaria: precio de apertura, precio al vencimiento, strikes, primas y retorno realizado.</p>
+      <div class="ctrl-row" style="margin-bottom:18px">
+        <div><label>Activo</label><select id="dt_asset"></select></div>
+        <div><label>Estrategia</label><select id="dt_strat">
+          <option value="cc">Covered Call</option>
+          <option value="csp">Cash-Secured Put</option>
+          <option value="col">Collar</option>
+        </select></div>
+        <div style="flex:0 0 auto;align-self:flex-end"><button class="btn ghost" id="dt_export">↓ Exportar CSV</button></div>
+      </div>
+      <div id="dt_summary" style="margin-bottom:14px"></div>
+      <div style="overflow-x:auto">
+        <table id="dt_table">
+          <thead><tr>
+            <th>#</th><th>Entrada</th><th>Venc.</th>
+            <th>S₀</th><th>Sᴛ</th><th>σ</th>
+            <th>K call</th><th>Prima C</th>
+            <th>K put</th><th>Prima P</th>
+            <th>Retorno</th><th>Resultado</th>
+          </tr></thead>
+          <tbody id="dt_body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== VALIDACIÓN ===== -->
+  <section id="valid">
+    <div class="card">
+      <h2>Validación Nivel 2 · primas teóricas vs mercado</h2>
+      <p class="lead">Sube un archivo con precios <b>reales</b> de opciones del mismo período. La herramienta valora cada opción con Black-Scholes (usando el subyacente y la volatilidad de esa fecha) y compara contra el precio observado mediante RMSE y MAE. Criterio de validez: error ≤ 5% del precio promedio de las opciones.</p>
+      <div class="row" style="margin-bottom:16px">
+        <div style="flex:0 0 auto"><a class="btn ghost" id="dl_options">↓ Descargar plantilla de opciones</a></div>
+      </div>
+      <div class="drop" id="drop_options">
+        <div class="big">Arrastra aquí el archivo de opciones reales, o haz clic</div>
+        <div class="small">Columnas: Date · Underlying · Type (C/P) · Strike · Expiry · Market_Price</div>
+        <input type="file" id="file_options" accept=".csv,.xlsx,.xls" style="display:none">
+      </div>
+      <div id="options_status" class="hint"></div>
+    </div>
+    <div id="valid_results"></div>
+  </section>
+
+  <!-- ===== PAYOFF ===== -->
+  <section id="payoff">
+    <div class="card">
+      <h2>Diagrama de pago al vencimiento</h2>
+      <p class="lead">Cada entrada carga sus parámetros reales (S₀, σ, tasa, strikes). Resultado por contrato (100 acciones) según el precio del subyacente al vencimiento.</p>
+      <div class="ctrl-row">
+        <div><label>Activo</label><select id="pf_asset"></select></div>
+        <div><label>Entrada (día)</label><select id="pf_entry"></select></div>
+        <div><label>Estrategia</label><div class="seg" id="pf_strat">
+          <button class="active" data-k="cc">Covered Call</button>
+          <button data-k="csp">Cash-Secured Put</button>
+          <button data-k="col">Collar</button></div></div>
+      </div>
+      <div class="params" id="pf_params"></div>
+      <canvas id="pf_canvas" height="380"></canvas>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--ink)"></i>P&L estrategia</span>
+        <span><i class="dot" style="background:var(--gold)"></i>Strikes</span>
+        <span><i class="dot" style="background:var(--neg)"></i>S_T observado</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CALCULADORA ===== -->
+  <section id="calc">
+    <div class="card grid-calc">
+      <div>
+        <h2>Parámetros</h2><p class="lead" style="margin-bottom:14px">Valora una opción individual.</p>
+        <div style="margin-bottom:14px"><label>S₀</label><input type="number" id="c_S" value="117.30" step="0.5"></div>
+        <div style="margin-bottom:14px"><label>K</label><input type="number" id="c_K" value="123.17" step="0.5"></div>
+        <div style="margin-bottom:14px"><label>Días al vencimiento</label><input type="number" id="c_d" value="30"><input type="range" id="cr_d" min="1" max="180" value="30"></div>
+        <div style="margin-bottom:14px"><label>r (% anual)</label><input type="number" id="c_r" value="4.22" step="0.05"></div>
+        <div style="margin-bottom:14px"><label>σ (% anual)</label><input type="number" id="c_v" value="81.86"><input type="range" id="cr_v" min="5" max="150" value="82"></div>
+        <div><label>q (% anual)</label><input type="number" id="c_q" value="0" step="0.1"></div>
+      </div>
+      <div>
+        <h2>Primas y griegas</h2><p class="lead" style="margin-bottom:16px">Salida en tiempo real.</p>
+        <div class="out"><div class="premium"><div class="k">Call</div><div class="v" id="c_call">—</div></div>
+          <div class="premium put"><div class="k">Put</div><div class="v" id="c_put">—</div></div></div>
+        <table class="greeks"><thead><tr><th>Griega</th><th>Call</th><th>Put</th></tr></thead><tbody id="c_greeks"></tbody></table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const DEFAULT_DATA={"dates": ["2025-01-02", "2025-01-03", "2025-01-06", "2025-01-07", "2025-01-08", "2025-01-10", "2025-01-13", "2025-01-14", "2025-01-15", "2025-01-16", "2025-01-17", "2025-01-21", "2025-01-22", "2025-01-23", "2025-01-24", "2025-01-27", "2025-01-28", "2025-01-29", "2025-01-30", "2025-01-31", "2025-02-03", "2025-02-04", "2025-02-05", "2025-02-06", "2025-02-07", "2025-02-10", "2025-02-11", "2025-02-12", "2025-02-13", "2025-02-14", "2025-02-18", "2025-02-19", "2025-02-20", "2025-02-21", "2025-02-24", "2025-02-25", "2025-02-26", "2025-02-27", "2025-02-28", "2025-03-03", "2025-03-04", "2025-03-05", "2025-03-06", "2025-03-07", "2025-03-10", "2025-03-11", "2025-03-12", "2025-03-13", "2025-03-14", "2025-03-17", "2025-03-18", "2025-03-19", "2025-03-20", "2025-03-21", "2025-03-24", "2025-03-25", "2025-03-26", "2025-03-27", "2025-03-28", "2025-03-31", "2025-04-01", "2025-04-02", "2025-04-03", "2025-04-04", "2025-04-07", "2025-04-08", "2025-04-09", "2025-04-10", "2025-04-11", "2025-04-14", "2025-04-15", "2025-04-16", "2025-04-17", "2025-04-21", "2025-04-22", "2025-04-23", "2025-04-24", "2025-04-25", "2025-04-28", "2025-04-29", "2025-04-30", "2025-05-01", "2025-05-02", "2025-05-05", "2025-05-06", "2025-05-07", "2025-05-08", "2025-05-09", "2025-05-12", "2025-05-13", "2025-05-14", "2025-05-15", "2025-05-16", "2025-05-19", "2025-05-20", "2025-05-21", "2025-05-22", "2025-05-23", "2025-05-27", "2025-05-28", "2025-05-29", "2025-05-30", "2025-06-02", "2025-06-03", "2025-06-04", "2025-06-05", "2025-06-06", "2025-06-09", "2025-06-10", "2025-06-11", "2025-06-12", "2025-06-13", "2025-06-16", "2025-06-17", "2025-06-18", "2025-06-20", "2025-06-23", "2025-06-24", "2025-06-25", "2025-06-26", "2025-06-27"], "rate": [0.0422, 0.042, 0.0421, 0.0421, 0.0421, 0.0422, 0.0423, 0.0422, 0.0421, 0.0421, 0.042, 0.0422, 0.0422, 0.0422, 0.0421, 0.042, 0.042, 0.042, 0.0419, 0.042, 0.0422, 0.0422, 0.0422, 0.0422, 0.0424, 0.0423, 0.0423, 0.0423, 0.0422, 0.0422, 0.0423, 0.0422, 0.0421, 0.0421, 0.0419, 0.0419, 0.042, 0.042, 0.042, 0.0421, 0.042, 0.0421, 0.042, 0.042, 0.0419, 0.042, 0.0421, 0.042, 0.042, 0.042, 0.042, 0.042, 0.0419, 0.0419, 0.0419, 0.0419, 0.042, 0.042, 0.042, 0.0421, 0.042, 0.0421, 0.042, 0.0417, 0.0417, 0.0419, 0.0424, 0.0422, 0.0423, 0.0422, 0.0422, 0.0421, 0.0423, 0.0422, 0.0422, 0.0422, 0.0421, 0.0421, 0.042, 0.042, 0.042, 0.042, 0.0422, 0.0422, 0.0422, 0.0422, 0.0423, 0.0422, 0.0431, 0.0429, 0.0429, 0.0427, 0.0425, 0.0428, 0.0426, 0.0424, 0.0425, 0.0424, 0.0424, 0.0424, 0.0425, 0.0425, 0.0425, 0.0424, 0.0425, 0.0425, 0.0425, 0.0425, 0.0426, 0.0426, 0.0427, 0.0426, 0.0424, 0.0423, 0.0423, 0.0421, 0.0419, 0.0419, 0.0419, 0.0421, 0.042], "tickers": {"NVDA": {"nom": [138.31, 144.47, 149.43, 140.14, 140.11, 135.91, 133.23, 131.76, 136.24, 133.57, 137.71, 140.83, 147.07, 147.22, 142.62, 118.42, 128.99, 123.7, 124.65, 120.07, 116.66, 118.65, 124.83, 128.68, 129.84, 133.57, 132.8, 131.14, 135.29, 138.85, 139.4, 139.23, 140.11, 134.43, 130.28, 126.63, 131.28, 120.15, 124.92, 114.06, 115.99, 117.3, 110.57, 112.69, 106.98, 108.76, 115.74, 115.58, 121.67, 119.53, 115.43, 117.52, 118.53, 117.7, 121.41, 120.69, 113.76, 111.43, 109.67, 108.38, 110.15, 110.42, 101.8, 94.31, 97.64, 96.3, 114.33, 107.57, 110.93, 110.71, 112.2, 104.49, 101.49, 96.91, 98.89, 102.71, 106.43, 111.01, 108.73, 109.02, 108.92, 111.61, 114.5, 113.82, 113.54, 117.06, 117.37, 116.65, 123.0, 129.93, 135.34, 134.83, 135.4, 135.57, 134.38, 131.8, 132.83, 131.29, 135.5, 134.81, 139.19, 135.13, 137.38, 141.22, 141.92, 139.99, 141.72, 142.63, 143.96, 142.83, 145.0, 141.97, 144.69, 144.12, 145.48, 143.85, 144.17, 147.9, 154.31, 155.02, 157.75], "adj": [138.2722, 144.4305, 149.3891, 140.1017, 140.0717, 135.8728, 133.1936, 131.724, 136.2028, 133.5335, 137.6723, 140.7915, 147.0298, 147.1797, 142.581, 118.3876, 128.9547, 123.6662, 124.6159, 120.0372, 116.6281, 118.6176, 124.7959, 128.6448, 129.8045, 133.5335, 132.7637, 131.1042, 135.253, 138.812, 139.3619, 139.1919, 140.0717, 134.3932, 130.2444, 126.5954, 131.2441, 120.1171, 124.8858, 114.0288, 115.9583, 117.2679, 110.5398, 112.6592, 106.9508, 108.7303, 115.719, 115.559, 121.6479, 119.5083, 115.409, 117.4987, 118.5085, 117.6786, 121.388, 120.6681, 113.7394, 111.4098, 109.6501, 108.3603, 110.13, 110.4, 101.7815, 94.2929, 97.6223, 96.2825, 114.3092, 107.5505, 110.9099, 110.6899, 112.1796, 104.471, 101.4716, 96.8924, 98.872, 102.6914, 106.4107, 110.9899, 108.7103, 109.0002, 108.9002, 111.5897, 114.4792, 113.7993, 113.5194, 117.0388, 117.3487, 116.6288, 122.9777, 129.9064, 135.3154, 134.8055, 135.3754, 135.5454, 134.3556, 131.7761, 132.8059, 131.2662, 135.4754, 134.7855, 139.1647, 135.1055, 137.3551, 141.1944, 141.8942, 139.9646, 141.6943, 142.6041, 143.9339, 142.814, 144.9837, 141.9541, 144.6738, 144.1038, 145.4637, 143.8339, 144.1538, 147.8834, 154.2927, 155.0026, 157.7323], "q": 0.0}, "AMZN": {"nom": [220.22, 224.19, 227.61, 222.11, 222.13, 218.94, 218.46, 217.76, 223.35, 220.66, 225.94, 230.71, 235.01, 235.42, 234.85, 235.42, 238.15, 237.07, 234.64, 237.68, 237.42, 242.06, 236.17, 238.83, 229.15, 233.14, 232.76, 228.93, 230.37, 228.68, 226.65, 226.63, 222.88, 216.58, 212.71, 212.8, 214.35, 208.74, 212.28, 205.02, 203.8, 208.36, 200.7, 199.25, 194.54, 196.59, 198.89, 193.89, 197.95, 195.74, 192.82, 195.54, 194.95, 196.21, 203.26, 205.71, 201.13, 201.36, 192.72, 190.26, 192.17, 196.01, 178.41, 171.0, 175.26, 170.66, 191.1, 181.22, 184.87, 182.12, 179.59, 174.33, 172.61, 167.32, 173.18, 180.6, 186.54, 188.99, 187.7, 187.39, 184.42, 190.2, 189.98, 186.35, 185.01, 188.71, 192.08, 193.06, 208.64, 211.37, 210.25, 205.17, 205.59, 206.16, 204.07, 201.12, 203.1, 200.99, 206.02, 204.72, 205.7, 205.01, 206.65, 205.71, 207.23, 207.91, 213.57, 216.98, 217.61, 213.2, 213.24, 212.1, 216.1, 214.82, 212.52, 209.69, 208.47, 212.77, 211.99, 217.12, 223.3], "adj": [220.22, 224.19, 227.61, 222.11, 222.13, 218.94, 218.46, 217.76, 223.35, 220.66, 225.94, 230.71, 235.01, 235.42, 234.85, 235.42, 238.15, 237.07, 234.64, 237.68, 237.42, 242.06, 236.17, 238.83, 229.15, 233.14, 232.76, 228.93, 230.37, 228.68, 226.65, 226.63, 222.88, 216.58, 212.71, 212.8, 214.35, 208.74, 212.28, 205.02, 203.8, 208.36, 200.7, 199.25, 194.54, 196.59, 198.89, 193.89, 197.95, 195.74, 192.82, 195.54, 194.95, 196.21, 203.26, 205.71, 201.13, 201.36, 192.72, 190.26, 192.17, 196.01, 178.41, 171.0, 175.26, 170.66, 191.1, 181.22, 184.87, 182.12, 179.59, 174.33, 172.61, 167.32, 173.18, 180.6, 186.54, 188.99, 187.7, 187.39, 184.42, 190.2, 189.98, 186.35, 185.01, 188.71, 192.08, 193.06, 208.64, 211.37, 210.25, 205.17, 205.59, 206.16, 204.07, 201.12, 203.1, 200.99, 206.02, 204.72, 205.7, 205.01, 206.65, 205.71, 207.23, 207.91, 213.57, 216.98, 217.61, 213.2, 213.24, 212.1, 216.1, 214.82, 212.52, 209.69, 208.47, 212.77, 211.99, 217.12, 223.3], "q": 0.0}, "PG": {"nom": [165.98, 165.13, 160.6, 161.3, 162.1, 158.56, 158.84, 159.74, 159.65, 160.5, 161.13, 161.72, 164.74, 166.15, 164.12, 169.66, 166.19, 166.23, 167.41, 165.99, 168.76, 168.13, 169.01, 168.88, 167.97, 167.53, 169.43, 169.58, 171.02, 162.89, 165.43, 166.49, 167.21, 170.23, 170.54, 172.65, 171.3, 171.97, 173.84, 175.59, 173.18, 174.61, 174.66, 175.95, 176.26, 173.12, 168.37, 168.59, 167.97, 169.76, 167.71, 168.57, 167.55, 166.69, 165.65, 162.85, 166.58, 168.71, 168.03, 170.42, 170.56, 169.5, 172.39, 163.75, 160.23, 158.39, 162.32, 163.56, 166.91, 169.13, 168.47, 166.39, 170.63, 165.75, 167.88, 165.73, 159.53, 161.02, 161.85, 162.26, 162.57, 159.98, 160.52, 158.83, 159.25, 159.29, 158.65, 157.66, 160.9, 158.73, 158.02, 162.41, 163.28, 164.77, 165.64, 165.43, 165.03, 165.86, 167.76, 167.36, 168.56, 169.89, 167.78, 166.85, 165.95, 162.8, 164.02, 162.56, 162.84, 162.11, 163.18, 160.28, 160.88, 158.52, 158.02, 159.08, 161.03, 160.36, 158.97, 158.63, 159.86], "adj": [160.5676, 159.7453, 155.3631, 156.0402, 156.8142, 153.3896, 153.6604, 154.5311, 154.444, 155.2663, 155.8758, 156.4465, 159.3681, 160.7321, 159.7364, 165.1284, 161.7511, 161.7901, 162.9385, 161.5565, 164.2525, 163.6393, 164.4958, 164.3693, 163.4836, 163.0553, 164.9046, 165.0506, 166.4521, 158.5393, 161.0114, 162.0431, 162.7439, 165.6832, 165.9849, 168.0386, 166.7246, 167.3767, 169.1968, 170.9001, 168.5544, 169.9462, 169.9949, 171.2504, 171.5522, 168.496, 163.8729, 164.087, 163.4836, 165.2258, 163.2305, 164.0676, 163.0748, 162.2378, 161.2255, 158.5003, 162.1307, 164.2038, 163.542, 165.8681, 166.0044, 164.9727, 167.7855, 159.3763, 155.9503, 154.1595, 157.9845, 159.1914, 162.4519, 164.6126, 163.9702, 161.9458, 166.0725, 162.3284, 164.4145, 162.3089, 156.2368, 157.6961, 158.509, 158.9105, 159.2141, 156.6776, 157.2064, 155.5513, 155.9626, 156.0018, 155.375, 154.4055, 157.5786, 155.4534, 154.758, 159.0574, 159.9094, 161.3687, 162.2207, 162.015, 161.6233, 162.4362, 164.297, 163.9052, 165.0804, 166.383, 164.3166, 163.4057, 162.5243, 159.4393, 160.6342, 159.2043, 159.4785, 158.7636, 159.8115, 156.9714, 157.559, 155.2477, 154.758, 155.7961, 157.7059, 157.0497, 155.6884, 155.3554, 156.56], "q": 0.024}}};
+/* ===================== MODELO ===================== */
+const ANN=252;
+function erf(x){const t=1/(1+0.3275911*Math.abs(x));
+  const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return x>=0?y:-y;}
+function ncdf(x){return 0.5*(1+erf(x/Math.SQRT2));}
+function npdf(x){return Math.exp(-x*x/2)/Math.sqrt(2*Math.PI);}
+function bsm(S,K,T,r,sig,q){
+  if(T<=0||sig<=0)return{call:Math.max(S-K,0),put:Math.max(K-S,0)};
+  const sq=Math.sqrt(T),d1=(Math.log(S/K)+(r-q+0.5*sig*sig)*T)/(sig*sq),d2=d1-sig*sq;
+  const er=Math.exp(-r*T),eq=Math.exp(-q*T);
+  return{call:S*eq*ncdf(d1)-K*er*ncdf(d2),put:K*er*ncdf(-d2)-S*eq*ncdf(-d1),
+    deltaCall:eq*ncdf(d1),deltaPut:eq*(ncdf(d1)-1),gamma:eq*npdf(d1)/(S*sig*sq),vega:S*eq*npdf(d1)*sq/100,
+    thetaCall:(-S*eq*npdf(d1)*sig/(2*sq)-r*K*er*ncdf(d2)+q*S*eq*ncdf(d1))/365,
+    thetaPut:(-S*eq*npdf(d1)*sig/(2*sq)+r*K*er*ncdf(-d2)-q*S*eq*ncdf(-d1))/365,
+    rhoCall:K*T*er*ncdf(d2)/100,rhoPut:-K*T*er*ncdf(-d2)/100};
+}
+/* ===================== ESTADO ===================== */
+let DATA=JSON.parse(JSON.stringify(DEFAULT_DATA));   // {dates, rate, tickers:{TK:{nom,adj,q}}}
+let PARAMS={otm:0.05,Tdays:30,win:30,rConst:0.0422};
+let SIM={};      // resultados por ticker
+const $=id=>document.getElementById(id);
+
+function parseDate(s){return new Date(s+'T00:00:00');}
+function logret(adj){const o=[null];for(let i=1;i<adj.length;i++)o.push(Math.log(adj[i]/adj[i-1]));return o;}
+function rollvol(rets,win){const o=rets.map(()=>NaN);
+  for(let i=win;i<rets.length;i++){const w=rets.slice(i-win+1,i+1);
+    if(w.some(x=>x==null||isNaN(x)))continue;const mu=w.reduce((a,b)=>a+b,0)/win;
+    const v=w.reduce((a,b)=>a+(b-mu)**2,0)/(win-1);o[i]=Math.sqrt(v)*Math.sqrt(ANN);}return o;}
+function rateAt(i){const v=DATA.rate&&DATA.rate[i]!=null?DATA.rate[i]:PARAMS.rConst;return v;}
+function simulateTicker(tk){
+  const d=DATA.tickers[tk],n=DATA.dates.length,q=d.q||0;
+  const rets=logret(d.adj),vol=rollvol(rets,PARAMS.win);
+  const ds=DATA.dates.map(parseDate),T=PARAMS.Tdays/365;
+  const rows=[];
+  for(let i=0;i<n;i++){
+    if(isNaN(vol[i]))continue;
+    const target=new Date(ds[i]);target.setDate(target.getDate()+PARAMS.Tdays);
+    let j=-1;for(let k=i+1;k<n;k++){if(ds[k]>=target){j=k;break;}}
+    if(j<0)continue;
+    const S0=d.nom[i],ST=d.nom[j],sig=vol[i],r=rateAt(i);
+    const Kc=Math.round((1+PARAMS.otm)*S0*100)/100,Kp=Math.round((1-PARAMS.otm)*S0*100)/100;
+    const c=bsm(S0,Kc,T,r,sig,q).call,p=bsm(S0,Kp,T,r,sig,q).put,NC=100;
+    rows.push({e:DATA.dates[i],v:DATA.dates[j],S0,ST,sig,r,Kc,Kp,c,p,
+      cc:(NC*Math.min(ST,Kc)-(NC*S0-NC*c))/(NC*S0),
+      csp:(NC*p+NC*Math.min(0,ST-Kp))/(NC*Kp),
+      col:(NC*Math.min(Math.max(ST,Kp),Kc)-(NC*S0-NC*c+NC*p))/(NC*S0)});
+  }
+  return rows;
+}
+function metrics(rs,rf){const n=rs.length;if(!n)return{n:0};
+  const mean=rs.reduce((a,b)=>a+b,0)/n,sd=n>1?Math.sqrt(rs.reduce((a,b)=>a+(b-mean)**2,0)/(n-1)):0;
+  return{n,mean,sd,sharpe:sd>0?(mean-rf)/sd:NaN,best:Math.max(...rs),worst:Math.min(...rs),succ:rs.filter(x=>x>0).length/n};}
+function recompute(){
+  PARAMS.otm=(+$('p_otm').value)/100;PARAMS.Tdays=+$('p_T').value;PARAMS.win=+$('p_win').value;PARAMS.rConst=(+$('p_r').value)/100;
+  SIM={};for(const tk of Object.keys(DATA.tickers))SIM[tk]=simulateTicker(tk);
+  // populate asset selector
+  const tks=Object.keys(SIM);
+  $('dt_asset').innerHTML=tks.map(t=>`<option value="${t}">${t}</option>`).join('');
+  renderResults();fillPayoff();renderDetail();
+}
+/* ===================== RESULTADOS ===================== */
+const NM={cc:'Covered Call',csp:'Cash-Secured Put',col:'Collar'};
+function pct(x,d=2){return (x*100).toFixed(d)+'%';}
+function clr(x){return x>=0?'pos':'neg';}
+function rfPeriod(){const m=DATA.rate&&DATA.rate.length?DATA.rate.reduce((a,b)=>a+b,0)/DATA.rate.length:PARAMS.rConst;return m*PARAMS.Tdays/365;}
+function renderResults(){
+  const rf=rfPeriod(),rows=[],bars=[];
+  for(const tk of Object.keys(SIM)){const sim=SIM[tk];
+    for(const s of ['cc','csp','col']){const m=metrics(sim.map(x=>x[s]),rf);if(!m.n)continue;
+      bars.push({label:tk+'·'+NM[s].split(' ')[0],sharpe:m.sharpe,tk});
+      rows.push(`<tr><td>${tk}</td><td>${NM[s]}</td><td class="mono">${m.n}</td>
+        <td class="mono ${clr(m.mean)}">${pct(m.mean)}</td><td class="mono">${pct(m.sd)}</td>
+        <td class="mono ${clr(m.sharpe)}">${m.sharpe.toFixed(2)}</td>
+        <td class="mono neg">${pct(m.worst)}</td><td class="mono pos">${pct(m.best)}</td>
+        <td class="mono">${(m.succ*100).toFixed(0)}%</td></tr>`);}}
+  $('r_table').innerHTML=rows.join('')||'<tr><td colspan="9">Carga datos en la pestaña 1.</td></tr>';
+  const n=SIM[Object.keys(SIM)[0]]?SIM[Object.keys(SIM)[0]].length:0;
+  $('r_note').innerHTML=`Entradas diarias solapadas (${n} por combinación). Como las ventanas se montan unas sobre otras, no son observaciones independientes; el Sharpe y la desviación deben leerse con esa cautela. No se reportan drawdown ni retorno acumulado, que no aplican a posiciones solapadas.`;
+  drawBars(bars);
+}
+/* ===================== DETALLE DE CORRIDAS ===================== */
+function renderDetail(){
+  const tk=$('dt_asset').value, s=$('dt_strat').value;
+  if(!SIM[tk]||!SIM[tk].length){$('dt_body').innerHTML='<tr><td colspan="12">Sin datos.</td></tr>';return;}
+  const sim=SIM[tk], rf=rfPeriod();
+  const NM_S={cc:'Covered Call',csp:'Cash-Secured Put',col:'Collar'};
+  const rets=sim.map(x=>x[s]);
+  const m=metrics(rets,rf);
+
+  // Summary pills
+  $('dt_summary').innerHTML=`
+    <span class="pill">n <b>${m.n}</b></span>
+    <span class="pill">Ret. prom. <b class="${clr(m.mean)}">${pct(m.mean)}</b></span>
+    <span class="pill">Desv. <b>${pct(m.sd)}</b></span>
+    <span class="pill">Sharpe <b class="${clr(m.sharpe)}">${m.sharpe.toFixed(2)}</b></span>
+    <span class="pill">Peor <b class="neg">${pct(m.worst)}</b></span>
+    <span class="pill">Mejor <b class="pos">${pct(m.best)}</b></span>
+    <span class="pill">Éxito <b>${(m.succ*100).toFixed(0)}%</b></span>`;
+
+  // Table rows — show cols relevant to strategy
+  const showKc = (s==='cc'||s==='col');
+  const showKp = (s==='csp'||s==='col');
+  const rows = sim.map((r,i)=>{
+    const ret=r[s], win=ret>0, loss=ret<0;
+    const kc = showKc ? `<td class="mono">${r.Kc.toFixed(2)}</td><td class="mono">${r.c.toFixed(3)}</td>` : `<td class="mono" style="color:var(--line)">—</td><td class="mono" style="color:var(--line)">—</td>`;
+    const kp = showKp ? `<td class="mono">${r.Kp.toFixed(2)}</td><td class="mono">${r.p.toFixed(3)}</td>` : `<td class="mono" style="color:var(--line)">—</td><td class="mono" style="color:var(--line)">—</td>`;
+    return `<tr>
+      <td class="mono" style="color:var(--ink-soft)">${i+1}</td>
+      <td class="mono">${r.e}</td>
+      <td class="mono">${r.v}</td>
+      <td class="mono">${r.S0.toFixed(2)}</td>
+      <td class="mono">${r.ST.toFixed(2)}</td>
+      <td class="mono">${(r.sig*100).toFixed(1)}%</td>
+      ${kc}${kp}
+      <td class="mono ${clr(ret)}">${pct(ret)}</td>
+      <td style="font-size:12px">${win?'<span class="pos">✓ positivo</span>':loss?'<span class="neg">✗ negativo</span>':'<span style="color:var(--ink-soft)">neutro</span>'}</td>
+    </tr>`;
+  });
+  $('dt_body').innerHTML=rows.join('');
+}
+
+function exportDetailCSV(){
+  const tk=$('dt_asset').value, s=$('dt_strat').value;
+  if(!SIM[tk]) return;
+  const NM_S={cc:'Covered Call',csp:'Cash-Secured Put',col:'Collar'};
+  const headers=['#','Entrada','Vencimiento','S0','ST','sigma','Kc','Prima_C','Kp','Prima_P','Retorno'];
+  const rows=SIM[tk].map((r,i)=>[i+1,r.e,r.v,r.S0.toFixed(2),r.ST.toFixed(2),(r.sig*100).toFixed(2),
+    r.Kc.toFixed(2),r.c.toFixed(4),r.Kp.toFixed(2),r.p.toFixed(4),(r[s]*100).toFixed(4)]);
+  const csv=[headers,...rows].map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=`corridas_${tk}_${s}.csv`; a.click(); URL.revokeObjectURL(a.href);
+}
+
+function drawBars(bars){const cv=$('r_canvas'),ctx=cv.getContext('2d');
+  const W=cv.width=cv.clientWidth*2,H=cv.height=600,PADL=40,PADR=20,PADT=20,PADB=90,nn=bars.length||1;
+  const vals=bars.map(b=>b.sharpe),mx=Math.max(...vals,0.1),mn=Math.min(...vals,0),Y0=mn-0.05,Y1=mx+0.05;
+  const Y=v=>PADT+(1-(v-Y0)/(Y1-Y0))*(H-PADT-PADB),bw=(W-PADL-PADR)/nn*0.6,gap=(W-PADL-PADR)/nn;
+  ctx.clearRect(0,0,W,H);ctx.font="20px 'DM Mono'";ctx.strokeStyle="#DDDDD8";ctx.fillStyle="#6B6B6B";ctx.textAlign="right";
+  for(let i=0;i<=4;i++){const yv=Y0+(Y1-Y0)*i/4;ctx.globalAlpha=.4;ctx.beginPath();ctx.moveTo(PADL,Y(yv));ctx.lineTo(W-PADR,Y(yv));ctx.stroke();ctx.globalAlpha=1;ctx.fillText(yv.toFixed(2),PADL-6,Y(yv)+6);}
+  ctx.strokeStyle="#2B2B2B";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(PADL,Y(0));ctx.lineTo(W-PADR,Y(0));ctx.stroke();
+  const cols={};const palette=['#7B9EBC','#8EAD97','#C4907A','#9DB3C8','#A8C4AF','#D4A898'];let ci=0;
+  bars.forEach((b,i)=>{if(!(b.tk in cols))cols[b.tk]=palette[ci++%palette.length];
+    const x=PADL+gap*i+(gap-bw)/2,y=Y(Math.max(b.sharpe,0)),y0=Y(0);
+    ctx.fillStyle=cols[b.tk];ctx.globalAlpha=b.sharpe>=0?1:.6;ctx.fillRect(x,Math.min(y,y0),bw,Math.abs(y-y0));ctx.globalAlpha=1;
+    ctx.save();ctx.translate(x+bw/2,H-PADB+14);ctx.rotate(-Math.PI/5);ctx.fillStyle="#6B6B6B";ctx.font="17px 'DM Mono'";ctx.textAlign="right";ctx.fillText(b.label,0,0);ctx.restore();
+    ctx.fillStyle="#2B2B2B";ctx.font="500 18px 'DM Sans'";ctx.textAlign="center";ctx.fillText(b.sharpe.toFixed(2),x+bw/2,(b.sharpe>=0?y-8:y0+22));});
+}
+/* ===================== PAYOFF ===================== */
+let pf={asset:null,entry:0,strat:'cc'};
+function fillPayoff(){
+  const tks=Object.keys(SIM);if(!tks.length)return;
+  if(!pf.asset||!SIM[pf.asset])pf.asset=tks[0];
+  $('pf_asset').innerHTML=tks.map(t=>`<option ${t===pf.asset?'selected':''}>${t}</option>`).join('');
+  $('pf_entry').innerHTML=SIM[pf.asset].map((x,i)=>`<option value="${i}">${x.e} → ${x.v}</option>`).join('');
+  pf.entry=0;drawPayoff();
+}
+function pnl(s,ST,d){const NC=100;if(s==='cc')return NC*(Math.min(ST,d.Kc)-d.S0+d.c);
+  if(s==='csp')return NC*d.p+NC*Math.min(0,ST-d.Kp);return NC*(Math.min(Math.max(ST,d.Kp),d.Kc)-d.S0+d.c+d.p);}
+function drawPayoff(){
+  const d=SIM[pf.asset]&&SIM[pf.asset][pf.entry];if(!d)return;
+  const lbl=NM[pf.strat];
+  $('pf_params').innerHTML=[['S₀','$'+d.S0.toFixed(2)],['σ',(d.sig*100).toFixed(1)+'%'],['r',(d.r*100).toFixed(2)+'%'],
+    ['Kc',d.Kc.toFixed(2)],['Kp',d.Kp.toFixed(2)],['Prima C','$'+d.c.toFixed(2)],['Prima P','$'+d.p.toFixed(2)],['S_T','$'+d.ST.toFixed(2)]]
+    .map(([k,v])=>`<div><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  const cv=$('pf_canvas'),ctx=cv.getContext('2d'),W=cv.width=cv.clientWidth*2,H=cv.height=760;
+  const PADL=70,PADR=24,PADT=30,PADB=44,lo=d.S0*0.7,hi=d.S0*1.3,N=240,xs=[],ys=[];
+  for(let i=0;i<=N;i++){const ST=lo+(hi-lo)*i/N;xs.push(ST);ys.push(pnl(pf.strat,ST,d));}
+  const ymin=Math.min(...ys,0),ymax=Math.max(...ys,0),yp=(ymax-ymin)*0.12||1,Y0=ymin-yp,Y1=ymax+yp;
+  const X=v=>PADL+(v-lo)/(hi-lo)*(W-PADL-PADR),Y=v=>PADT+(1-(v-Y0)/(Y1-Y0))*(H-PADT-PADB);
+  ctx.clearRect(0,0,W,H);ctx.font="22px 'DM Mono'";ctx.strokeStyle="#DDDDD8";ctx.fillStyle="#6B6B6B";ctx.textAlign="right";
+  for(let i=0;i<=4;i++){const yv=Y0+(Y1-Y0)*i/4;ctx.globalAlpha=.5;ctx.beginPath();ctx.moveTo(PADL,Y(yv));ctx.lineTo(W-PADR,Y(yv));ctx.stroke();ctx.globalAlpha=1;ctx.fillText('$'+yv.toFixed(0),PADL-8,Y(yv)+7);}
+  ctx.textAlign="center";for(let i=0;i<=4;i++){const xv=lo+(hi-lo)*i/4;ctx.fillText('$'+xv.toFixed(0),X(xv),H-16);}
+  ctx.strokeStyle="#9aa39c";ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(PADL,Y(0));ctx.lineTo(W-PADR,Y(0));ctx.stroke();
+  [d.Kc,d.Kp].forEach(k=>{ctx.strokeStyle="#C4907A";ctx.setLineDash([6,6]);ctx.beginPath();ctx.moveTo(X(k),PADT);ctx.lineTo(X(k),H-PADB);ctx.stroke();ctx.setLineDash([]);});
+  ctx.strokeStyle="#A8705A";ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(X(d.ST),PADT);ctx.lineTo(X(d.ST),H-PADB);ctx.stroke();
+  ctx.lineWidth=3;ctx.strokeStyle="#2B2B2B";ctx.beginPath();xs.forEach((x,i)=>{const px=X(x),py=Y(ys[i]);i?ctx.lineTo(px,py):ctx.moveTo(px,py);});ctx.stroke();
+  const rp=pnl(pf.strat,d.ST,d);ctx.fillStyle="#A8705A";ctx.beginPath();ctx.arc(X(d.ST),Y(rp),7,0,7);ctx.fill();
+  ctx.fillStyle="#2B2B2B";ctx.font="600 24px 'DM Sans'";ctx.textAlign="left";ctx.fillText(lbl+' · P&L: '+(rp>=0?'+$':'-$')+Math.abs(rp).toFixed(0),PADL,20);
+}
+/* ===================== CALCULADORA ===================== */
+function calc(){const S=+$('c_S').value,K=+$('c_K').value,T=+$('c_d').value/365,r=+$('c_r').value/100,s=+$('c_v').value/100,q=+$('c_q').value/100;
+  const g=bsm(S,K,T,r,s,q),f=(x)=>(x>=0?' ':'')+x.toFixed(4);
+  $('c_call').textContent='$'+g.call.toFixed(3);$('c_put').textContent='$'+g.put.toFixed(3);
+  $('c_greeks').innerHTML=[['Delta',g.deltaCall,g.deltaPut],['Gamma',g.gamma,g.gamma],['Vega (×1%)',g.vega,g.vega],
+    ['Theta (×1d)',g.thetaCall,g.thetaPut],['Rho (×1%)',g.rhoCall,g.rhoPut]]
+    .map(([n,a,b])=>`<tr><td>${n}</td><td class="mono">${f(a)}</td><td class="mono">${f(b)}</td></tr>`).join('');}
+['c_S','c_K','c_d','c_r','c_v','c_q'].forEach(id=>$(id).addEventListener('input',calc));
+$('cr_d').addEventListener('input',e=>{$('c_d').value=e.target.value;calc();});$('cr_v').addEventListener('input',e=>{$('c_v').value=e.target.value;calc();});
+$('c_d').addEventListener('input',e=>$('cr_d').value=e.target.value);$('c_v').addEventListener('input',e=>$('cr_v').value=e.target.value);
+
+/* ===================== PARSEO DE ARCHIVOS ===================== */
+function normDate(v){
+  if(v instanceof Date)return v.toISOString().slice(0,10);
+  if(typeof v==='number'&&v>20000&&v<80000){const d=new Date(Math.round((v-25569)*86400*1000));return d.toISOString().slice(0,10);}
+  const s=String(v).trim();const m=s.match(/(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+  if(m)return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  const m2=s.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+  if(m2)return `${m2[3]}-${m2[1].padStart(2,'0')}-${m2[2].padStart(2,'0')}`;
+  const d=new Date(s);return isNaN(d)?s:d.toISOString().slice(0,10);
+}
+function readFile(file){return new Promise((res,rej)=>{
+  const ext=file.name.toLowerCase();const fr=new FileReader();
+  if(ext.endsWith('.csv')){fr.onload=()=>res(csvToRows(fr.result));fr.onerror=rej;fr.readAsText(file);}
+  else{fr.onload=()=>{try{const wb=XLSX.read(new Uint8Array(fr.result),{type:'array',cellDates:true});
+    const ws=wb.Sheets[wb.SheetNames[0]];res(XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null}));}catch(e){rej(e);}};
+    fr.onerror=rej;fr.readAsArrayBuffer(file);}});}
+function csvToRows(text){return text.replace(/\r/g,'').split('\n').filter(l=>l.trim()).map(l=>l.split(',').map(c=>{const t=c.trim();const n=parseFloat(t);return (t!==''&&!isNaN(n)&&/^-?[\d.]+$/.test(t))?n:t;}));}
+
+function detectPrices(rows){
+  const head=rows[0].map(h=>String(h).trim());const data=rows.slice(1);
+  const lc=head.map(h=>h.toLowerCase());
+  let dCol=lc.findIndex(h=>h==='date'||h==='fecha');if(dCol<0)dCol=0;
+  let rCol=lc.findIndex(h=>/risk[_ ]?free|irx|^tasa|r_decimal|^r_%|^r$|^rate$/.test(h));
+  const tickers={};
+  head.forEach((h,i)=>{let m=h.match(/^(.+?)[_ ](nominal|nom)$/i);if(m){const t=m[1].toUpperCase();(tickers[t]=tickers[t]||{}).nomCol=i;}
+    m=h.match(/^(.+?)[_ ](ajustado|adj|adjusted|adj[_ ]?close)$/i);if(m){const t=m[1].toUpperCase();(tickers[t]=tickers[t]||{}).adjCol=i;}});
+  // caso de una sola acción con columnas Close / Adj_Close
+  if(Object.keys(tickers).length===0){
+    const cClose=lc.findIndex(h=>h==='close'||h==='cierre'||h==='nominal');
+    const cAdj=lc.findIndex(h=>/adj|ajustad/.test(h));
+    if(cClose>=0&&cAdj>=0)tickers['ACCION']={nomCol:cClose,adjCol:cAdj};
+    else if(cAdj>=0)tickers['ACCION']={nomCol:cAdj,adjCol:cAdj};
+  }
+  const dates=data.map(r=>normDate(r[dCol]));
+  let rate=null;
+  if(rCol>=0){rate=data.map(r=>{let v=parseFloat(r[rCol]);return isNaN(v)?null:(v>1?v/100:v);});}
+  const out={dates,rate,tickers:{}};
+  for(const t in tickers){const tc=tickers[t];if(tc.nomCol==null||tc.adjCol==null)continue;
+    out.tickers[t]={nom:data.map(r=>parseFloat(r[tc.nomCol])),adj:data.map(r=>parseFloat(r[tc.adjCol])),q:(t==='PG'?0.024:0)};}
+  return out;
+}
+function loadPrices(parsed){
+  if(!Object.keys(parsed.tickers).length){$('prices_status').innerHTML='<span class="neg">No se detectaron columnas de precios. Revisa la plantilla.</span>';return;}
+  DATA=parsed;
+  $('prices_status').innerHTML=`<span class="pos">✓ Cargado.</span> ${parsed.dates.length} sesiones · ${parsed.dates[0]} a ${parsed.dates[parsed.dates.length-1]} · acciones: ${Object.keys(parsed.tickers).join(', ')} · tasa: ${parsed.rate?'columna del archivo':'constante de parámetros'}`;
+  renderTickerCfg();recompute();
+}
+function renderTickerCfg(){
+  const tks=Object.keys(DATA.tickers);
+  $('ticker_cfg').innerHTML='<label>Dividendo continuo q por acción (% anual, editable)</label><div class="row">'+
+    tks.map(t=>`<div style="flex:0 0 auto"><span class="pill"><b>${t}</b> q = <input type="number" data-tk="${t}" value="${((DATA.tickers[t].q||0)*100).toFixed(2)}" step="0.1" style="width:70px;display:inline-block;padding:4px 7px"></span></div>`).join('')+'</div>';
+  $('ticker_cfg').querySelectorAll('input[data-tk]').forEach(inp=>inp.addEventListener('change',()=>{DATA.tickers[inp.dataset.tk].q=(+inp.value)/100;recompute();}));
+}
+/* ===================== VALIDACIÓN NIVEL 2 ===================== */
+function detectOptions(rows){
+  const head=rows[0].map(h=>String(h).trim().toLowerCase());const data=rows.slice(1);
+  const idx=(re)=>head.findIndex(h=>re.test(h));
+  const ci={date:idx(/date|fecha/),und:idx(/under|subyac|ticker|activo/),type:idx(/type|tipo|c\/p|callput/),
+    strike:idx(/strike|^k$|ejercicio/),exp:idx(/expir|venc|expiry/),mkt:idx(/market|mercado|price|precio|last|settle/)};
+  return data.map(r=>({date:normDate(r[ci.date]),und:String(r[ci.und]).trim().toUpperCase(),
+    type:String(r[ci.type]).trim().toUpperCase().startsWith('C')?'C':'P',
+    K:parseFloat(r[ci.strike]),expiry:normDate(r[ci.exp]),mkt:parseFloat(r[ci.mkt])})).filter(o=>!isNaN(o.K)&&!isNaN(o.mkt));
+}
+function validateOptions(opts){
+  const rets={},vols={};
+  for(const tk in DATA.tickers){rets[tk]=logret(DATA.tickers[tk].adj);vols[tk]=rollvol(rets[tk],PARAMS.win);}
+  const dIdx={};DATA.dates.forEach((d,i)=>dIdx[d]=i);
+  const recs=[];let nSkip=0;
+  for(const o of opts){
+    const i=dIdx[o.date];if(i==null||!DATA.tickers[o.und]||isNaN(vols[o.und][i])){nSkip++;continue;}
+    const S=DATA.tickers[o.und].nom[i],sig=vols[o.und][i],r=(DATA.rate&&DATA.rate[i]!=null)?DATA.rate[i]:PARAMS.rConst,q=DATA.tickers[o.und].q||0;
+    const T=(parseDate(o.expiry)-parseDate(o.date))/(365*86400000);
+    if(T<=0){nSkip++;continue;}
+    const g=bsm(S,o.K,T,r,sig,q),teo=o.type==='C'?g.call:g.put;
+    recs.push({...o,S,sig,T,teo,err:teo-o.mkt,money:o.type==='C'?S/o.K:o.K/S});
+  }
+  return{recs,nSkip};
+}
+function renderValidation(opts){
+  const {recs,nSkip}=validateOptions(opts);
+  if(!recs.length){$('valid_results').innerHTML='<div class="card"><div class="note bad-box">No se pudo valorar ninguna opción. Verifica que las fechas y los subyacentes coincidan con los datos cargados en la pestaña 1, y que el archivo siga la plantilla.</div></div>';return;}
+  const errs=recs.map(r=>r.err),abserr=errs.map(Math.abs);
+  const rmse=Math.sqrt(errs.reduce((a,b)=>a+b*b,0)/errs.length);
+  const mae=abserr.reduce((a,b)=>a+b,0)/errs.length;
+  const meanMkt=recs.reduce((a,r)=>a+r.mkt,0)/recs.length;
+  const rmsePct=rmse/meanMkt,maePct=mae/meanMkt,pasa=rmsePct<=0.05;
+  const detRows=recs.slice(0,80).map(r=>`<tr><td>${r.und} ${r.type}${r.K}</td><td>${r.date}</td>
+    <td class="mono">${r.mkt.toFixed(3)}</td><td class="mono">${r.teo.toFixed(3)}</td>
+    <td class="mono ${clr(-Math.abs(r.err))}">${r.err.toFixed(3)}</td><td class="mono">${r.money.toFixed(3)}</td></tr>`).join('');
+  $('valid_results').innerHTML=`
+    <div class="card">
+      <h2>Resultado de la validación</h2>
+      <div style="margin:10px 0 18px">
+        <span class="pill"><b>${recs.length}</b> opciones valoradas</span>
+        <span class="pill">RMSE <b>${rmse.toFixed(4)}</b> (${(rmsePct*100).toFixed(2)}%)</span>
+        <span class="pill">MAE <b>${mae.toFixed(4)}</b> (${(maePct*100).toFixed(2)}%)</span>
+        <span class="pill">Precio prom. mercado <b>${meanMkt.toFixed(3)}</b></span>
+        ${nSkip?`<span class="pill">omitidas <b>${nSkip}</b></span>`:''}
+      </div>
+      <div class="note ${pasa?'ok-box':'bad-box'}">
+        <div class="verdict">${pasa?'✓ El modelo pasa el umbral del 5%':'✗ El error supera el umbral del 5%'}</div>
+        RMSE = ${(rmsePct*100).toFixed(2)}% del precio promedio (criterio: ≤ 5%). ${pasa?'Las primas teóricas reproducen el mercado dentro de la tolerancia fijada.':'Conviene discutir el desvío: recuerda que Black-Scholes usa una sola volatilidad para todos los strikes, por lo que el error suele crecer en opciones OTM (volatility skew).'}
+      </div>
+      <h3 style="margin-top:20px">Teórico vs mercado</h3>
+      <canvas id="v_canvas" height="380"></canvas>
+      <div class="legend"><span><i class="dotc" style="background:var(--teal)"></i>cada opción</span><span><i class="dot" style="background:#9aa39c"></i>línea de igualdad (teórico = mercado)</span></div>
+      <details style="margin-top:14px"><summary>Ver detalle por opción (primeras 80)</summary>
+        <table style="margin-top:10px"><thead><tr><th>Contrato</th><th>Fecha</th><th>Mercado</th><th>Teórico</th><th>Error</th><th>Moneyness</th></tr></thead><tbody>${detRows}</tbody></table>
+      </details>
+    </div>`;
+  drawScatter(recs);
+}
+function drawScatter(recs){const cv=$('v_canvas'),ctx=cv.getContext('2d');
+  const W=cv.width=cv.clientWidth*2,H=cv.height=760,P=64;
+  const all=recs.flatMap(r=>[r.mkt,r.teo]),mx=Math.max(...all)*1.05;
+  const X=v=>P+v/mx*(W-P-20),Y=v=>H-P-v/mx*(H-P-20);
+  ctx.clearRect(0,0,W,H);ctx.font="20px 'DM Mono'";ctx.fillStyle="#6B6B6B";ctx.strokeStyle="#DDDDD8";
+  ctx.textAlign="right";for(let i=0;i<=4;i++){const gv=mx*i/4;ctx.globalAlpha=.5;ctx.beginPath();ctx.moveTo(P,Y(gv));ctx.lineTo(W-20,Y(gv));ctx.stroke();ctx.globalAlpha=1;ctx.fillText(gv.toFixed(0),P-8,Y(gv)+6);}
+  ctx.textAlign="center";for(let i=0;i<=4;i++){const gv=mx*i/4;ctx.fillText(gv.toFixed(0),X(gv),H-30);}
+  ctx.fillStyle="#6B6B6B";ctx.fillText("Precio de mercado",W/2,H-6);
+  ctx.save();ctx.translate(18,H/2);ctx.rotate(-Math.PI/2);ctx.fillText("Precio teórico (BSM)",0,0);ctx.restore();
+  ctx.strokeStyle="#9aa39c";ctx.lineWidth=2;ctx.setLineDash([7,7]);ctx.beginPath();ctx.moveTo(X(0),Y(0));ctx.lineTo(X(mx),Y(mx));ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle="rgba(123,158,188,.6)";recs.forEach(r=>{ctx.beginPath();ctx.arc(X(r.mkt),Y(r.teo),5,0,7);ctx.fill();});
+}
+/* ===================== DESCARGA DE PLANTILLAS ===================== */
+function download(name,text){const b=new Blob([text],{type:'text/csv'});const a=document.createElement('a');
+  a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href);}
+$('dl_prices').addEventListener('click',()=>download('plantilla_precios.csv',
+  'Date,XYZ_Nominal,XYZ_Ajustado,Risk_Free_%\n2025-01-02,100.00,99.80,4.22\n2025-01-03,101.20,101.00,4.20\n2025-01-06,100.50,100.30,4.21\n'+
+  '# Una columna _Nominal y una _Ajustado por cada accion (ej. AAPL_Nominal, AAPL_Ajustado).\n'+
+  '# Risk_Free_% es opcional; si falta, se usa la tasa constante de Parametros.\n'));
+$('dl_options').addEventListener('click',()=>download('plantilla_opciones.csv',
+  'Date,Underlying,Type,Strike,Expiry,Market_Price\n2025-01-02,XYZ,C,105,2025-06-20,4.85\n2025-01-02,XYZ,P,95,2025-06-20,3.10\n'+
+  '# Type: C (call) o P (put). Strike y Market_Price numericos. Expiry y Date en formato AAAA-MM-DD.\n'+
+  '# El subyacente (Underlying) debe coincidir con una accion cargada en la pestana 1.\n'));
+/* ===================== EVENTOS DE CARGA ===================== */
+function wireDrop(dropId,fileId,onParsed){
+  const drop=$(dropId),file=$(fileId);
+  drop.addEventListener('click',()=>file.click());
+  ['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('over');}));
+  ['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('over');}));
+  drop.addEventListener('drop',ev=>{if(ev.dataTransfer.files[0])handle(ev.dataTransfer.files[0]);});
+  file.addEventListener('change',()=>{if(file.files[0])handle(file.files[0]);});
+  function handle(f){readFile(f).then(onParsed).catch(e=>alert('No se pudo leer el archivo: '+e));}
+}
+wireDrop('drop_prices','file_prices',rows=>loadPrices(detectPrices(rows)));
+wireDrop('drop_options','file_options',rows=>{const o=detectOptions(rows);
+  $('options_status').innerHTML=`<span class="pos">✓ ${o.length} opciones leídas.</span> Calculando…`;renderValidation(o);});
+$('recompute').addEventListener('click',recompute);
+$('dt_asset').addEventListener('change',renderDetail);
+$('dt_strat').addEventListener('change',renderDetail);
+$('dt_export').addEventListener('click',exportDetailCSV);
+/* ===================== NAV ===================== */
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('section').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');$(t.dataset.s).classList.add('active');
+  if(t.dataset.s==='payoff')setTimeout(drawPayoff,30);
+  if(t.dataset.s==='results')setTimeout(renderResults,30);
+}));
+$('pf_asset').addEventListener('change',e=>{pf.asset=e.target.value;$('pf_entry').innerHTML=SIM[pf.asset].map((x,i)=>`<option value="${i}">${x.e} → ${x.v}</option>`).join('');pf.entry=0;drawPayoff();});
+$('pf_entry').addEventListener('change',e=>{pf.entry=+e.target.value;drawPayoff();});
+$('pf_strat').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{$('pf_strat').querySelectorAll('button').forEach(x=>x.classList.remove('active'));b.classList.add('active');pf.strat=b.dataset.k;drawPayoff();}));
+window.addEventListener('resize',()=>{if($('results').classList.contains('active'))renderResults();if($('payoff').classList.contains('active'))drawPayoff();});
+/* init */
+$('param_note').textContent='El conjunto cargado por defecto es el del estudio (NVDA, AMZN, PG). Sube otro archivo para reemplazarlo.';
+calc();renderTickerCfg();recompute();
+</script>
+</body>
+</html>
