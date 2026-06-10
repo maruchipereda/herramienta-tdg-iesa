@@ -543,7 +543,8 @@ function detectPrices(rows){
   if(rCol>=0){rate=data.map(r=>{let v=parseFloat(r[rCol]);return isNaN(v)?null:(v>1?v/100:v);});}
   const out={dates,rate,tickers:{}};
   for(const t in tickers){const tc=tickers[t];if(tc.nomCol==null||tc.adjCol==null)continue;
-    out.tickers[t]={nom:data.map(r=>parseFloat(r[tc.nomCol])),adj:data.map(r=>parseFloat(r[tc.adjCol])),q:(t==='PG'?0.024:0)};}
+    const prevQ=(DATA.tickers[t]&&DATA.tickers[t].q!=null)?DATA.tickers[t].q:0;
+    out.tickers[t]={nom:data.map(r=>parseFloat(r[tc.nomCol])),adj:data.map(r=>parseFloat(r[tc.adjCol])),q:prevQ};}
   return out;
 }
 function loadPrices(parsed){
@@ -554,8 +555,13 @@ function loadPrices(parsed){
 }
 function renderTickerCfg(){
   const tks=Object.keys(DATA.tickers);
-  $('ticker_cfg').innerHTML='<label>Dividendo continuo q por acción (% anual, editable)</label><div class="row">'+
-    tks.map(t=>`<div style="flex:0 0 auto"><span class="pill"><b>${t}</b> q = <input type="number" data-tk="${t}" value="${((DATA.tickers[t].q||0)*100).toFixed(2)}" step="0.1" style="width:70px;display:inline-block;padding:4px 7px"></span></div>`).join('')+'</div>';
+  const isDefault=tks.join(',')===Object.keys(DEFAULT_DATA.tickers).join(',');
+  const hint=isDefault
+    ? '<span style="font-size:11.5px;color:var(--ink-soft);margin-left:4px">Valores del estudio (PG lleva dividendo continuo de 2.4%)</span>'
+    : '<span style="font-size:11.5px;color:var(--terra-d);margin-left:4px">Acción nueva detectada — verifica y ajusta el dividendo si aplica (0 si no paga)</span>';
+  $('ticker_cfg').innerHTML='<label style="margin-bottom:8px">Dividendo continuo q por acción (% anual, editable)</label><div class="row" style="align-items:center">'+
+    tks.map(t=>`<div style="flex:0 0 auto"><span class="pill"><b>${t}</b> &nbsp;q =&nbsp;<input type="number" data-tk="${t}" value="${((DATA.tickers[t].q||0)*100).toFixed(2)}" step="0.1" min="0" max="20" style="width:68px;display:inline-block;padding:4px 7px;font-family:\'DM Mono\',monospace"></span></div>`).join('')+
+    '</div>'+hint;
   $('ticker_cfg').querySelectorAll('input[data-tk]').forEach(inp=>inp.addEventListener('change',()=>{DATA.tickers[inp.dataset.tk].q=(+inp.value)/100;recompute();}));
 }
 /* ===================== VALIDACIÓN NIVEL 2 ===================== */
